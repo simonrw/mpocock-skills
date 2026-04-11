@@ -1,11 +1,16 @@
 ---
 name: triage-issue
-description: Triage a bug or issue by exploring the codebase to find root cause, then create a GitHub issue with a TDD-based fix plan. Use when user reports a bug, wants to file an issue, mentions "triage", or wants to investigate and plan a fix for a problem.
+description: Triage a bug or issue by exploring the codebase to find root cause, then create a Linear issue with a TDD-based fix plan. Use when user reports a bug, wants to file an issue, mentions "triage", or wants to investigate and plan a fix for a problem.
 ---
 
 # Triage Issue
 
-Investigate a reported problem, find its root cause, and create a GitHub issue with a TDD fix plan. This is a mostly hands-off workflow - minimize questions to the user.
+Investigate a reported problem, find its root cause, and create a Linear issue with a TDD fix plan. This is a mostly hands-off workflow - minimize questions to the user.
+
+## Required tools
+
+- `mcp__linear-server__save_issue` — create the issue
+- `mcp__linear-server__list_teams` — discover the team to file against
 
 ## Process
 
@@ -19,7 +24,7 @@ Do NOT ask follow-up questions yet. Start investigating immediately.
 
 Use the Agent tool with subagent_type=Explore to deeply investigate the codebase. Your goal is to find:
 
-- **Where** the bug manifests (entry points, UI, API responses)
+- **Where** the bug manifests (entry points, API responses, CLI output)
 - **What** code path is involved (trace the flow)
 - **Why** it fails (the root cause, not just the symptom)
 - **What** related code exists (similar patterns, tests, adjacent modules)
@@ -52,11 +57,11 @@ Rules:
 - One test at a time, vertical slices (NOT all tests first, then all code)
 - Each test should survive internal refactors
 - Include a final refactor step if needed
-- **Durability**: Only suggest fixes that would survive radical codebase changes. Describe behaviors and contracts, not internal structure. Tests assert on observable outcomes (API responses, UI state, user-visible effects), not internal state. A good suggestion reads like a spec; a bad one reads like a diff.
+- **Durability**: Only suggest fixes that would survive radical codebase changes. Describe behaviors and contracts, not internal structure. Tests assert on observable outcomes (API responses, CLI output, user-visible effects), not internal state. A good suggestion reads like a spec; a bad one reads like a diff.
 
-### 5. Create the GitHub issue
+### 5. Create the Linear issue
 
-Create a GitHub issue using `gh issue create` with the template below. Do NOT ask the user to review before creating - just create it and share the URL.
+Create a Linear issue using `mcp__linear-server__save_issue` with the template below. Do NOT ask the user to review before creating - just create it and share the identifier.
 
 <issue-template>
 
@@ -99,4 +104,4 @@ A numbered list of RED-GREEN cycles:
 
 </issue-template>
 
-After creating the issue, print the issue URL and a one-line summary of the root cause.
+After creating the issue, print the issue identifier and a one-line summary of the root cause.

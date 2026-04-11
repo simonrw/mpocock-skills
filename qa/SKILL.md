@@ -1,11 +1,17 @@
 ---
 name: qa
-description: Interactive QA session where user reports bugs or issues conversationally, and the agent files GitHub issues. Explores the codebase in the background for context and domain language. Use when user wants to report bugs, do QA, file issues conversationally, or mentions "QA session".
+description: Interactive QA session where user reports bugs or issues conversationally, and the agent files Linear issues. Explores the codebase in the background for context and domain language. Use when user wants to report bugs, do QA, file issues conversationally, or mentions "QA session".
 ---
 
 # QA Session
 
-Run an interactive QA session. The user describes problems they're encountering. You clarify, explore the codebase for context, and file GitHub issues that are durable, user-focused, and use the project's domain language.
+Run an interactive QA session. The user describes problems they're encountering. You clarify, explore the codebase for context, and file Linear issues that are durable, user-focused, and use the project's domain language.
+
+## Required tools
+
+- `mcp__linear-server__save_issue` — create issues
+- `mcp__linear-server__list_teams` — discover the team to file against
+- `mcp__linear-server__list_issue_labels` — check available labels
 
 ## For each issue the user raises
 
@@ -44,15 +50,17 @@ Keep as a single issue when:
 - It's one behavior that's wrong in one place
 - The symptoms are all caused by the same root behavior
 
-### 4. File the GitHub issue(s)
+### 4. File the Linear issue(s)
 
-Create issues with `gh issue create`. Do NOT ask the user to review first — just file and share URLs.
+Create issues using `mcp__linear-server__save_issue`. Do NOT ask the user to review first — just file and share the identifiers.
+
+If you haven't already, use `mcp__linear-server__list_teams` to determine the correct team.
 
 Issues must be **durable** — they should still make sense after major refactors. Write from the user's perspective.
 
 #### For a single issue
 
-Use this template:
+Use this as the issue description:
 
 ```
 ## What happened
@@ -76,15 +84,11 @@ Use this template:
 
 #### For a breakdown (multiple issues)
 
-Create issues in dependency order (blockers first) so you can reference real issue numbers.
+Create a parent issue first, then create sub-issues using `parentId` set to the parent issue identifier. Create in dependency order (blockers first) so you can set `blockedBy` with real issue identifiers.
 
-Use this template for each sub-issue:
+Use this template for each sub-issue description:
 
 ```
-## Parent issue
-
-#<parent-issue-number> (if you created a tracking issue) or "Reported during QA session"
-
 ## What's wrong
 
 [Describe this specific behavior problem — just this slice, not the whole report]
@@ -97,12 +101,6 @@ Use this template for each sub-issue:
 
 1. [Steps specific to THIS issue]
 
-## Blocked by
-
-- #<issue-number> (if this issue can't be fixed until another is resolved)
-
-Or "None — can start immediately" if no blockers.
-
 ## Additional context
 
 [Any extra observations relevant to this slice]
@@ -111,8 +109,8 @@ Or "None — can start immediately" if no blockers.
 When creating a breakdown:
 
 - **Prefer many thin issues over few thick ones** — each should be independently fixable and verifiable
-- **Mark blocking relationships honestly** — if issue B genuinely can't be tested until issue A is fixed, say so. If they're independent, mark both as "None — can start immediately"
-- **Create issues in dependency order** so you can reference real issue numbers in "Blocked by"
+- **Set blocking relationships honestly** using `blockedBy` — if issue B genuinely can't be tested until issue A is fixed, say so
+- **Create issues in dependency order** so you can reference real identifiers in `blockedBy`
 - **Maximize parallelism** — the goal is that multiple people (or agents) can grab different issues simultaneously
 
 #### Rules for all issue bodies
@@ -123,7 +121,7 @@ When creating a breakdown:
 - **Reproduction steps are mandatory** — if you can't determine them, ask the user
 - **Keep it concise** — a developer should be able to read the issue in 30 seconds
 
-After filing, print all issue URLs (with blocking relationships summarized) and ask: "Next issue, or are we done?"
+After filing, print all issue identifiers (with blocking relationships summarized) and ask: "Next issue, or are we done?"
 
 ### 5. Continue the session
 

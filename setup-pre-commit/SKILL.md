@@ -1,91 +1,63 @@
 ---
 name: setup-pre-commit
-description: Set up Husky pre-commit hooks with lint-staged (Prettier), type checking, and tests in the current repo. Use when user wants to add pre-commit hooks, set up Husky, configure lint-staged, or add commit-time formatting/typechecking/testing.
+description: Set up pre-commit hooks for formatting, linting, type checking, and tests in the current repo. Detects the project's language and toolchain to choose the right hook framework. Use when user wants to add pre-commit hooks, set up commit-time checks, or add formatting/linting/testing on commit.
 ---
 
 # Setup Pre-Commit Hooks
 
 ## What This Sets Up
 
-- **Husky** pre-commit hook
-- **lint-staged** running Prettier on all staged files
-- **Prettier** config (if missing)
-- **typecheck** and **test** scripts in the pre-commit hook
+- A **pre-commit hook** that runs formatting, linting, type checking, and/or tests before each commit
+- Uses the appropriate hook framework for the project's language/toolchain
 
 ## Steps
 
-### 1. Detect package manager
+### 1. Detect the project's language and toolchain
 
-Check for `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), `yarn.lock` (yarn), `bun.lockb` (bun). Use whichever is present. Default to npm if unclear.
+Explore the repo to determine:
 
-### 2. Install dependencies
+- **Primary language(s)** — look at file extensions, build files, config files
+- **Package manager** — cargo, go, pip/poetry/uv, npm/pnpm/yarn/bun, mix, gem, etc.
+- **Existing formatter/linter** — check for config files (.prettierrc, rustfmt.toml, .golangci.yml, pyproject.toml, .rubocop.yml, etc.)
+- **Existing test runner** — check for test scripts, test directories, test config
+- **Existing type checker** — mypy, pyright, tsc, etc.
 
-Install as devDependencies:
+### 2. Choose hook framework
 
-```
-husky lint-staged prettier
-```
+Pick the appropriate approach based on what the project already uses:
 
-### 3. Initialize Husky
+- **If the project already has a hook framework** (husky, pre-commit, lefthook, etc.) — use it
+- **Otherwise, prefer the simplest option for the ecosystem:**
+  - Python/polyglot: [pre-commit](https://pre-commit.com/) framework
+  - JS/TS: Husky + lint-staged
+  - Rust: cargo-husky or a simple git hook script
+  - Go: a simple git hook script or lefthook
+  - Other: a direct `.git/hooks/pre-commit` script
 
-```bash
-npx husky init
-```
+### 3. Install and configure
 
-This creates `.husky/` dir and adds `prepare: "husky"` to package.json.
+Install the chosen framework and configure it to run:
 
-### 4. Create `.husky/pre-commit`
+1. **Formatter** on staged files (fast, staged-only)
+2. **Linter** if available (fast, staged-only where possible)
+3. **Type checker** if applicable (full project check)
+4. **Tests** if a test script exists (full suite or relevant subset)
 
-Write this file (no shebang needed for Husky v9+):
+Order matters — run fast checks first so failures are caught early.
 
-```
-npx lint-staged
-npm run typecheck
-npm run test
-```
+### 4. Verify
 
-**Adapt**: Replace `npm` with detected package manager. If repo has no `typecheck` or `test` script in package.json, omit those lines and tell the user.
+- [ ] Hook file exists and is executable
+- [ ] Run the hook manually to verify it works
+- [ ] Confirm each check runs in the right order
 
-### 5. Create `.lintstagedrc`
+### 5. Commit
 
-```json
-{
-  "*": "prettier --ignore-unknown --write"
-}
-```
-
-### 6. Create `.prettierrc` (if missing)
-
-Only create if no Prettier config exists. Use these defaults:
-
-```json
-{
-  "useTabs": false,
-  "tabWidth": 2,
-  "printWidth": 80,
-  "singleQuote": false,
-  "trailingComma": "es5",
-  "semi": true,
-  "arrowParens": "always"
-}
-```
-
-### 7. Verify
-
-- [ ] `.husky/pre-commit` exists and is executable
-- [ ] `.lintstagedrc` exists
-- [ ] `prepare` script in package.json is `"husky"`
-- [ ] `prettier` config exists
-- [ ] Run `npx lint-staged` to verify it works
-
-### 8. Commit
-
-Stage all changed/created files and commit with message: `Add pre-commit hooks (husky + lint-staged + prettier)`
-
-This will run through the new pre-commit hooks — a good smoke test that everything works.
+Stage all changed/created files and commit. This commit will itself run through the new hooks — a good smoke test.
 
 ## Notes
 
-- Husky v9+ doesn't need shebangs in hook files
-- `prettier --ignore-unknown` skips files Prettier can't parse (images, etc.)
-- The pre-commit runs lint-staged first (fast, staged-only), then full typecheck and tests
+- Always check what's already in place before installing anything new
+- Prefer running formatters on staged files only (faster feedback)
+- Type checkers and test suites typically need the full project, not just staged files
+- If the project has no formatter, linter, or tests, tell the user what's missing rather than installing defaults

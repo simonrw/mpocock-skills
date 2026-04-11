@@ -1,19 +1,25 @@
 ---
 name: prd-to-issues
-description: Break a PRD into independently-grabbable GitHub issues using tracer-bullet vertical slices. Use when user wants to convert a PRD to issues, create implementation tickets, or break down a PRD into work items.
+description: Break a PRD into independently-grabbable Linear sub-issues using tracer-bullet vertical slices. Use when user wants to convert a PRD to issues, create implementation tickets, or break down a PRD into work items.
 ---
 
 # PRD to Issues
 
-Break a PRD into independently-grabbable GitHub issues using vertical slices (tracer bullets).
+Break a PRD into independently-grabbable Linear sub-issues using vertical slices (tracer bullets).
+
+## Required tools
+
+- `mcp__linear-server__get_issue` — fetch the PRD issue
+- `mcp__linear-server__save_issue` — create sub-issues (with `parentId`)
+- `mcp__linear-server__list_teams` — discover the team to file against
 
 ## Process
 
 ### 1. Locate the PRD
 
-Ask the user for the PRD GitHub issue number (or URL).
+Ask the user for the PRD's Linear issue identifier (e.g. TEAM-123).
 
-If the PRD is not already in your context window, fetch it with `gh issue view <number>` (with comments).
+If the PRD is not already in your context window, fetch it with `mcp__linear-server__get_issue`.
 
 ### 2. Explore the codebase (optional)
 
@@ -49,17 +55,15 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Create the GitHub issues
+### 5. Create the Linear sub-issues
 
-For each approved slice, create a GitHub issue using `gh issue create`. Use the issue body template below.
+For each approved slice, create a Linear issue using `mcp__linear-server__save_issue` with `parentId` set to the PRD issue identifier. This makes each slice a sub-issue of the PRD.
 
-Create issues in dependency order (blockers first) so you can reference real issue numbers in the "Blocked by" field.
+Create issues in dependency order (blockers first) so you can set `blockedBy` with real issue identifiers.
 
-<issue-template>
-## Parent PRD
+Use this issue description template:
 
-#<prd-issue-number>
-
+```
 ## What to build
 
 A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation. Reference specific sections of the parent PRD rather than duplicating content.
@@ -70,19 +74,14 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 - [ ] Criterion 2
 - [ ] Criterion 3
 
-## Blocked by
-
-- Blocked by #<issue-number> (if any)
-
-Or "None - can start immediately" if no blockers.
-
 ## User stories addressed
 
 Reference by number from the parent PRD:
 
 - User story 3
 - User story 7
+```
 
-</issue-template>
+Set the `blockedBy` field to the identifiers of any blocking issues, or omit if there are no blockers.
 
 Do NOT close or modify the parent PRD issue.

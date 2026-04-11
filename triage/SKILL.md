@@ -1,11 +1,23 @@
 ---
-name: github-triage
-description: Triage GitHub issues through a label-based state machine with interactive grilling sessions. Use when user wants to triage issues, review incoming bugs or feature requests, prepare issues for an AFK agent, or manage issue workflow.
+name: triage
+description: Triage Linear issues through a label-based state machine with interactive grilling sessions. Use when user wants to triage issues, review incoming bugs or feature requests, prepare issues for an AFK agent, or manage issue workflow.
 ---
 
-# GitHub Issue Triage
+# Issue Triage
 
-Triage issues in the current repo using a label-based state machine. Infer the repo from `git remote`. Use `gh` for all GitHub operations.
+Triage issues in the user's Linear workspace using a label-based state machine.
+
+## Required tools
+
+- `mcp__linear-server__list_issues` — query issues by label, state, team
+- `mcp__linear-server__get_issue` — read full issue details
+- `mcp__linear-server__save_issue` — update labels, state, parent
+- `mcp__linear-server__save_comment` — post triage notes, agent briefs
+- `mcp__linear-server__list_comments` — read existing comments
+- `mcp__linear-server__list_issue_labels` — check available labels
+- `mcp__linear-server__create_issue_label` — create missing triage labels
+- `mcp__linear-server__list_teams` — discover teams
+- `mcp__linear-server__list_issue_statuses` — check available workflow states
 
 ## Reference docs
 
@@ -24,6 +36,8 @@ Triage issues in the current repo using a label-based state machine. Infer the r
 | `ready-for-human` | State    | Requires human implementation            |
 | `wontfix`         | State    | Will not be actioned                     |
 
+On first use, check if these labels exist in the workspace using `mcp__linear-server__list_issue_labels`. Create any missing labels using `mcp__linear-server__create_issue_label`.
+
 Every issue should have exactly **one** state label and **one** category label. If an issue has conflicting state labels (e.g. both `needs-triage` and `ready-for-agent`), flag the conflict and ask the maintainer which state is correct before doing anything else. Provide a recommendation.
 
 ## State Machine
@@ -33,36 +47,36 @@ Every issue should have exactly **one** state label and **one** category label. 
 | `unlabeled`    | `needs-triage`    | Skill (on first look)  | Issue needs maintainer evaluation. Skill applies label after presenting recommendation.                              |
 | `unlabeled`    | `ready-for-agent` | Maintainer (via skill) | Issue is already well-specified and agent-suitable. Skill writes agent brief comment, applies label.                 |
 | `unlabeled`    | `ready-for-human` | Maintainer (via skill) | Issue requires human implementation. Skill writes a brief comment summarizing the task, applies label.               |
-| `unlabeled`    | `wontfix`         | Maintainer (via skill) | Issue is spam, duplicate, or out of scope. Skill closes with comment (and writes `.out-of-scope/` for enhancements). |
+| `unlabeled`    | `wontfix`         | Maintainer (via skill) | Issue is spam, duplicate, or out of scope. Skill sets state to Cancelled with comment (and writes `.out-of-scope/` for enhancements). |
 | `needs-triage` | `needs-info`      | Maintainer (via skill) | Issue is underspecified. Skill posts triage notes capturing progress so far + questions for reporter.                |
 | `needs-triage` | `ready-for-agent` | Maintainer (via skill) | Grilling session complete, agent-suitable. Skill writes agent brief comment, applies label.                          |
 | `needs-triage` | `ready-for-human` | Maintainer (via skill) | Grilling session complete, needs human. Skill writes a brief comment summarizing the task, applies label.            |
-| `needs-triage` | `wontfix`         | Maintainer (via skill) | Maintainer decides not to action. Skill closes with comment (and writes `.out-of-scope/` for enhancements).          |
+| `needs-triage` | `wontfix`         | Maintainer (via skill) | Maintainer decides not to action. Skill sets state to Cancelled with comment (and writes `.out-of-scope/` for enhancements). |
 | `needs-info`   | `needs-triage`    | Skill (detects reply)  | Reporter has replied. Skill surfaces to maintainer for re-evaluation.                                                |
 
 An issue can only move along these transitions. The maintainer can override any state directly (see Quick State Override below), but the skill should flag if the transition is unusual.
 
 ## Invocation
 
-The maintainer invokes `/github-triage` then describes what they want in natural language. The skill interprets the request and takes the appropriate action.
+The maintainer invokes `/triage` then describes what they want in natural language. The skill interprets the request and takes the appropriate action.
 
 Example requests:
 
 - "Show me anything that needs my attention"
-- "Let's look at #42"
-- "Move #42 to ready-for-agent"
+- "Let's look at TEAM-42"
+- "Move TEAM-42 to ready-for-agent"
 - "What's ready for agents to pick up?"
 - "Are there any unlabeled issues?"
 
 ## Workflow: Show What Needs Attention
 
-When the maintainer asks for an overview, query GitHub and present a summary grouped into three buckets:
+When the maintainer asks for an overview, query Linear and present a summary grouped into three buckets:
 
-1. **Unlabeled issues** — new, no labels at all. These have never been triaged.
-2. **`needs-triage` issues** — maintainer needs to evaluate or continue evaluating.
-3. **`needs-info` issues with new activity** — the reporter has commented since the last triage notes comment. Check comment timestamps to determine this.
+1. **Issues without triage labels** — use `mcp__linear-server__list_issues` to find issues that lack any of the triage state labels. These have never been triaged.
+2. **`needs-triage` issues** — use `mcp__linear-server__list_issues` with `label: "needs-triage"`. Maintainer needs to evaluate or continue evaluating.
+3. **`needs-info` issues with new activity** — use `mcp__linear-server__list_issues` with `label: "needs-info"`, then check each issue's comments with `mcp__linear-server__list_comments` to see if the reporter has replied since the last triage notes comment.
 
-Display counts per group. Within each group, show issues oldest first (longest-waiting gets attention first). For each issue, show: number, title, age, and a one-line summary of the issue body.
+Display counts per group. Within each group, show issues oldest first (longest-waiting gets attention first). For each issue, show: identifier, title, age, and a one-line summary of the issue body.
 
 Let the maintainer pick which issue to dive into.
 
@@ -72,7 +86,8 @@ Let the maintainer pick which issue to dive into.
 
 Before presenting anything to the maintainer:
 
-- Read the full issue: body, all comments, all labels, who reported it, when
+- Read the full issue using `mcp__linear-server__get_issue` (with `includeRelations: true`)
+- Read all comments using `mcp__linear-server__list_comments`
 - If there are prior triage notes comments (from previous sessions), parse them to understand what has already been established
 - Explore the codebase to build context — understand the domain, relevant interfaces, and existing behavior related to the issue
 - Read `.out-of-scope/*.md` files and check if this issue matches or is similar to a previously rejected concept
@@ -129,24 +144,24 @@ Before posting any comment or applying any label, show the maintainer a **previe
 
 Depending on the outcome:
 
-- **ready-for-agent** — post an agent brief comment (see [AGENT-BRIEF.md](AGENT-BRIEF.md))
+- **ready-for-agent** — post an agent brief comment using `mcp__linear-server__save_comment` (see [AGENT-BRIEF.md](AGENT-BRIEF.md)), apply label using `mcp__linear-server__save_issue`
 - **ready-for-human** — post a comment summarizing the task, what was established during triage, and why it needs human implementation. Use the same structure as an agent brief but note the reason it can't be delegated to an agent (e.g. requires judgment calls, external system access, design decisions, or manual testing).
 - **needs-info** — post triage notes with progress so far and questions for the reporter (see Needs Info Output below)
-- **wontfix (bug)** — post a polite comment explaining why, then close the issue
-- **wontfix (enhancement)** — write to `.out-of-scope/`, post a comment linking to it, then close the issue (see [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md))
+- **wontfix (bug)** — post a polite comment explaining why, then set the issue state to Cancelled using `mcp__linear-server__save_issue` with `state: "Cancelled"`
+- **wontfix (enhancement)** — write to `.out-of-scope/`, post a comment linking to it, then set state to Cancelled (see [OUT-OF-SCOPE.md](OUT-OF-SCOPE.md))
 - **needs-triage** — apply the label. Optionally leave a comment if there's partial progress to capture.
 
 ## Workflow: Quick State Override
 
-When the maintainer explicitly tells you to move an issue to a specific state (e.g. "move #42 to ready-for-agent"), trust their judgment and apply the label directly.
+When the maintainer explicitly tells you to move an issue to a specific state (e.g. "move TEAM-42 to ready-for-agent"), trust their judgment and apply the label directly.
 
-Still show a confirmation of what you're about to do: which labels will be added/removed, and whether you'll post a comment or close the issue. But skip the grilling session entirely.
+Still show a confirmation of what you're about to do: which labels will be added/removed, and whether you'll post a comment or change the issue state. But skip the grilling session entirely.
 
 If moving to `ready-for-agent` without a grilling session, ask the maintainer if they want to write a brief agent brief comment or skip it.
 
 ## Needs Info Output
 
-When moving an issue to `needs-info`, post a comment that captures the grilling progress and tells the reporter what's needed:
+When moving an issue to `needs-info`, post a comment using `mcp__linear-server__save_comment` that captures the grilling progress and tells the reporter what's needed:
 
 ```markdown
 ## Triage Notes
@@ -168,7 +183,7 @@ Include everything resolved during the grilling session in "established so far" 
 
 When triaging an issue that already has triage notes from a previous session:
 
-1. Read all comments to find prior triage notes
+1. Read all comments using `mcp__linear-server__list_comments` to find prior triage notes
 2. Parse what was already established
 3. Check if the reporter has answered any outstanding questions
 4. Present the maintainer with an updated picture: "Here's where we left off, and here's what the reporter has said since"

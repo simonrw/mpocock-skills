@@ -28,7 +28,7 @@ This project does not support dark mode or user-facing theming.
 ## Why this is out of scope
 
 The rendering pipeline assumes a single color palette defined in
-`ThemeConfig`. Supporting multiple themes would require:
+the theme configuration. Supporting multiple themes would require:
 
 - A theme context provider wrapping the entire component tree
 - Per-component theme-aware style resolution
@@ -38,19 +38,11 @@ This is a significant architectural change that doesn't align with the
 project's focus on content authoring. Theming is a concern for downstream
 consumers who embed or redistribute the output.
 
-```ts
-// The current ThemeConfig interface is not designed for runtime switching:
-interface ThemeConfig {
-  colors: ColorPalette; // single palette, resolved at build time
-  fonts: FontStack;
-}
-```
-
 ## Prior requests
 
-- #42 — "Add dark mode support"
-- #87 — "Night theme for accessibility"
-- #134 — "Dark theme option"
+- TEAM-42 — "Add dark mode support"
+- TEAM-87 — "Night theme for accessibility"
+- TEAM-134 — "Dark theme option"
 ```
 
 ### Naming the file
@@ -77,7 +69,7 @@ During triage (Step 1: Gather context), read all files in `.out-of-scope/`. When
 
 The maintainer may:
 
-- **Confirm** — the new issue gets added to the existing file's "Prior requests" list, then closed
+- **Confirm** — the new issue gets added to the existing file's "Prior requests" list, then set to Cancelled
 - **Reconsider** — the out-of-scope file gets deleted or updated, and the issue proceeds through normal triage
 - **Disagree** — the issues are related but distinct, proceed with normal triage
 
@@ -89,8 +81,8 @@ Only when an **enhancement** (not a bug) is rejected as `wontfix`. The flow:
 2. Check if a matching `.out-of-scope/` file already exists
 3. If yes: append the new issue to the "Prior requests" list
 4. If no: create a new file with the concept name, decision, reason, and first prior request
-5. Post a comment on the issue explaining the decision and mentioning the `.out-of-scope/` file
-6. Close the issue with the `wontfix` label
+5. Post a comment on the issue using `mcp__linear-server__save_comment` explaining the decision and mentioning the `.out-of-scope/` file
+6. Set the issue state to Cancelled using `mcp__linear-server__save_issue` with `state: "Cancelled"` and add the `wontfix` label
 
 ## Updating or removing out-of-scope files
 
