@@ -24,7 +24,7 @@ A deep module (as opposed to a shallow module) is one which encapsulates a lot o
 
 Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
 
-5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. The PRD should be submitted as a Linear issue using `mcp__linear-server__save_issue` with the title set to the feature name and the description using the template below.
+5. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. The PRD should be submitted as a Linear issue using `mcp__linear-server__save_issue` with the title set to "PRD: <feature name>" and the description using the template below.
 
 <prd-template>
 
